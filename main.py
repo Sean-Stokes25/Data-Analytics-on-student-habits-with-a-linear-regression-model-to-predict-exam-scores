@@ -1,15 +1,13 @@
 import pandas as pd
 import pprint
 import matplotlib.pyplot as plt
-import random
-from sklearn.linear_model import LinearRegression
-data = pd.read_csv(r"student_habits_performance.csv")
+from sklearn.linear_model import LinearRegression   #import as sckikit-learn in shell
+data = pd.read_csv(r"student_habits_performance.csv")  #import dataset
 
 df = pd.DataFrame(data)
 
-cleaned = pd.DataFrame(df.drop(["student_id","age","gender"],axis = 1))    #remove uneeded columns
-
-#Used to map none integerr values to integers
+cleaned = pd.DataFrame(df.drop(["student_id","age","gender"],axis = 1)) #remove unwanted columns
+#Dictionaries used to map string values to integer values
 diet_score_map = {
     "Poor":3,
     "Fair":5,
@@ -37,7 +35,7 @@ extracurricular_participation_map = {
 
 
 while True:
-  #prompt user
+    #prompt user
     user_choice = int(input("""\nWhat information would u like to see
     Enter 1 for average student data
     Enter 2 for the affect of parental education on exam results
@@ -50,8 +48,7 @@ while True:
         #-----------------
         #Average student
         #----------------
-
-      #finds mean and mode of columns
+        #Creates the average student
         average_of_data = {
            "Hours of study per day":f"{cleaned['study_hours_per_day'].mean():.2f}",
            "Social media hours per day":f"{cleaned['social_media_hours'].mean():.2f} ",
@@ -69,7 +66,8 @@ while True:
            }
 
         average_student = pd.DataFrame(average_of_data)
-        #display full table
+        
+        #used to display the full dataset not cropped
         with pd.option_context('display.max_rows', None, 'display.max_columns', None):
             print(average_student)
 
@@ -78,7 +76,9 @@ while True:
         #Parental education level
         #-------------------------
         print("Average Exam results  of students sorted by parental education")
-
+        
+        #seperates test scores based on parental education then prints the mean of each 
+        
         master = cleaned[cleaned["parental_education_level"] == "Master"]
         print(f'Master:{master["exam_score"].mean():.1f}')
          
@@ -96,18 +96,20 @@ while True:
         #------------------
         #Wellbeing 
         #------------------
+        #The wellbeing score is calculated by adding sleep hours mental health rating and diet quality we map diet quality 
+        #with the dictionery at the top
         
+        
+        cleaned["diet_quality"] = cleaned["diet_quality"].map(diet_score_map).fillna(0)  #Maps diet quality
 
-        cleaned["diet_quality"] = cleaned["diet_quality"].map(diet_score_map).fillna(0)
+        cleaned["wellbeing_score"] = cleaned["sleep_hours"] + cleaned["mental_health_rating"] + cleaned["diet_quality"] 
 
-        cleaned["wellbeing_score"] = cleaned["sleep_hours"] + cleaned["mental_health_rating"] + cleaned["diet_quality"]
-
-
+        #Creates scatter plot of student wellbeings relationship with examscores 
         x1 = cleaned["wellbeing_score"]
         y1 = cleaned["exam_score"]
-        plt.scatter(x1, y1,c=x1,cmap = "viridis")
+        plt.scatter(x1, y1,c=x1,cmap="viridis")   #viridis is the colour scheme
         plt.title("Relationship of wellbeing to exam results")
-        plt.colorbar(label='Color scale')
+        plt.colorbar(label="Color scale")
         plt.xlabel("Wellbeing Score")
         plt.ylabel("Exam Score")
         
@@ -116,7 +118,8 @@ while True:
         #-----------------------
         #Attendence factors 
         #-----------------------
-
+        #finds mean student attendence of students with and without parttime job
+        
         no = cleaned[cleaned["part_time_job"] == "No"]
         print(f'Attendence with parttime job:{no["attendance_percentage"].mean():.1f}')
 
@@ -168,13 +171,15 @@ while True:
     
     
     elif user_choice == 6:
+        #Map to relevant dictionaries
         cleaned_for_model = cleaned
         cleaned_for_model["diet_quality"] = cleaned["diet_quality"].map(diet_score_map).fillna(0)
         cleaned_for_model["parental_education_level"] = cleaned["parental_education_level"].map(parental_education_map).fillna(0)
         cleaned_for_model["internet_quality"] = cleaned["internet_quality"].map(internet_quality_map).fillna(0)
         cleaned_for_model["part_time_job"] = cleaned["part_time_job"].map(part_time_job_map).fillna(0)
         cleaned_for_model["extracurricular_participation"] = cleaned["extracurricular_participation"].map(extracurricular_participation_map).fillna(0)
-
+        
+        #data that model is trained with
         X = cleaned_for_model[[
             "study_hours_per_day",
             "social_media_hours",
@@ -188,14 +193,15 @@ while True:
             "internet_quality",
             "mental_health_rating",
             "extracurricular_participation"]]
-        
+        #what data model is trying to predict
         Y = cleaned_for_model["exam_score"]
 
 
         model = LinearRegression()   #this creates model
 
         model.fit(X, Y)  #this train model
-
+        
+        #prompts user for their data and predicts their exam score
         predicted_score = model.predict([[
             study := float(input("How many hours study do you do a night:")),
             social_media := float(input("How many hours do u spend on social media a night:")),
